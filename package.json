@@ -20,5 +20,9 @@
   "bugs": {
     "url": "https://github.com/VIZ-World/viz-paygate-js/issues"
   },
-  "homepage": "https://github.com/VIZ-World/viz-paygate-js#readme"
+  "homepage": "https://github.com/VIZ-World/viz-paygate-js#readme",
+  "dependencies": {
+    "mongodb": "^3.1.13",
+    "viz-world-js": "^0.9.16"
+  }
 }
