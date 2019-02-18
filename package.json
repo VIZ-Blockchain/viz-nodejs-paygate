@@ -1,0 +1,24 @@
+{
+  "name": "viz-paygate",
+  "version": "1.0.0",
+  "description": "Paygate provider for VIZ blockchain",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VIZ-World/viz-paygate-js.git"
+  },
+  "keywords": [
+    "viz",
+    "paygate",
+    "blockchain"
+  ],
+  "author": "Anatoly Piskunov <anatoly.piskunov@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/VIZ-World/viz-paygate-js/issues"
+  },
+  "homepage": "https://github.com/VIZ-World/viz-paygate-js#readme"
+}
