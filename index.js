@@ -9,5 +9,7 @@ mongo.connect(options.mongodb.url,{useNewUrlParser:true},function(err,client){
 	const db=client.db(options.mongodb.database);
 	viz=new viz_helper(options.viz,db);
 	viz.select_best_gate();
-	client.close();
+	viz.start();
+	//viz.stop();
+	//client.close();
 });

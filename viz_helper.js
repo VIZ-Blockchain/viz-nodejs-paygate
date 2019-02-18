@@ -9,8 +9,157 @@ var jsonrpc_gate='';
 var best_gate=-1;
 var best_gate_latency=-1;
 var best_gate_block_num=-1;
+var working=false;
+var processing=false;
+var current_block=1;
+var parse_block=1;
 
 module.exports=class viz_helper{
+	auto_increment(collection,inc=true,callback){
+		mongodb.collection('auto_increment').findOne({_id:collection},function(e,r){
+			if(e){
+				callback(false);
+			}
+			let result=0;
+			if(typeof r !== 'undefined'){
+				if(null===r){
+					if(inc){
+						mongodb.collection('auto_increment').insertOne({_id:collection,count:1},function(e,r){
+							if(!e){
+								result=1;
+							}
+							else{
+								result=false;
+							}
+							callback(result);
+						});
+					}
+					else{
+						callback(false);
+					}
+				}
+				else{
+					result=r.count;
+					if(inc){
+						result++;
+						mongodb.collection('auto_increment').updateOne({_id:collection},{$set:{count:result}},function(e,r){
+							if(e){
+								callback(false);
+							}
+							callback(result);
+						});
+					}
+					else{
+						callback(result);
+					}
+				}
+			}
+		});
+	}
+	process_block(){
+		var _this=this;
+		if(!processing){
+			processing=true;
+		}
+		var process_success=function(){
+			current_block++;
+			processing=false;
+			if(current_block<parse_block){
+				setTimeout(()=>{_this.process_block()},100);
+			}
+		}
+		var process_failure=function(){
+			processing=false;
+		}
+		let current_block_request=current_block;
+		viz.api.getOpsInBlock(current_block,0,function(e,r){
+			if(e){
+				process_failure();
+			}
+			else{
+				if(current_block_request==current_block){
+					console.log('Parse block '+current_block+options.paygate_account);
+					for(let i in r){
+						let op_name=r[i].op[0];
+						if(op_name=='transfer'){
+							let op_data=r[i].op[1];
+							let trx_id=r[i].trx_id;
+							if(op_data.to==options.paygate_account){
+								console.log('Find '+op_name+' trx_id:'+r[i].trx_id+' in block '+current_block_request+' with data: '+JSON.stringify(op_data));
+								_this.auto_increment('viz_income',true,function(id){
+									if(!id){
+										console.log('Error mongodb auto increment viz_income '+op_name+' trx_id:'+r[i].trx_id+' in block '+current_block_request+' with data: '+JSON.stringify(op_data));
+									}
+									else{
+										let transfer={_id:id,status:0,from:op_data.from,amount:parseInt(parseFloat(op_data.amount.substr(0,op_data.amount.indexOf(' ')))*1000),memo:op_data.memo,block:current_block_request,trx_id:trx_id};
+										mongodb.collection('viz_income').insertOne(transfer,function(e,r){
+											if(e){
+												console.log('Error mongodb viz_income '+op_name+' trx_id:'+trx_id+' in block '+current_block_request+' with data: '+JSON.stringify(op_data));
+											}
+											else{
+												console.log('Success mongodb viz_income '+op_name+' trx_id:'+trx_id+' in block '+current_block_request+' with data: '+JSON.stringify(op_data));
+											}
+										});
+									}
+								});
+
+							}
+						}
+					}
+					process_success();
+				}
+				else{
+					console.log('Process block glich, current_block_request: '+current_block_request+' not equal current_block: '+current_block+' ignoring respond');
+					process_failure();
+				}
+			}
+		});
+
+	}
+	check_waterfall(check_parse_block){
+		var _this=this;
+		if(parse_block==check_parse_block){
+			console.log('Check parse block fail, restart working waterfall...');
+			working=false;
+			this.select_best_gate();
+			setTimeout(()=>{
+				_this.start();
+			},5000);
+		}
+	}
+	waterfall(){
+		var _this=this;
+		console.log('Waterfall... parse_block: '+parse_block);
+		let check_parse_block=parse_block;
+		setTimeout(()=>{_this.check_waterfall(check_parse_block)},15000);
+		viz.api.getDynamicGlobalProperties(function(e,r){
+			if(!e){
+				if('irreversible'==options.parsing_mode){
+					if(parse_block<r.last_irreversible_block_num){
+						parse_block=r.last_irreversible_block_num;
+					}
+				}
+				else{
+					if(parse_block<r.head_block_number){
+						parse_block=r.head_block_number;
+					}
+				}
+				if(current_block<parse_block){
+					_this.process_block();
+				}
+			}
+			if(working){
+				setTimeout(()=>{_this.waterfall()},3000);
+			}
+		});
+	}
+	start(){
+		working=true;
+		this.waterfall();
+	}
+	stop(){
+		working=false;
+	}
 	constructor(helper_options,helper_mongodb_database){
 		options=helper_options;
 		mongodb=helper_mongodb_database;

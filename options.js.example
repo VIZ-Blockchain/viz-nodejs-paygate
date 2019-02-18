@@ -4,10 +4,10 @@ options.viz={};
 
 options.viz.jsonrpc_gates=['https://rpc.viz.lexai.host/','https://solox.world/','https://rpc.viz.ropox.app/'];
 options.viz.parsing_mode='irreversible';//irreversible or regular
+options.viz.paygate_account='paygate';
 
 options.mongodb={};
 options.mongodb.url='mongodb://user:password@localhost:27017/?authSource=users_database';
 options.mongodb.database='paygate';
-options.mongodb.prefix='paygate';
 
 module.exports=options;
