@@ -12,6 +12,7 @@ var best_gate_block_num=-1;
 var working=false;
 var processing=false;
 var current_block=1;
+var current_block_attempts=0;
 var parse_block=1;
 
 module.exports=class viz_helper{
@@ -63,6 +64,7 @@ module.exports=class viz_helper{
 		}
 		var process_success=function(){
 			current_block++;
+			current_block_attempts=0;
 			processing=false;
 			if(current_block<parse_block){
 				setTimeout(()=>{_this.process_block()},100);
@@ -72,12 +74,14 @@ module.exports=class viz_helper{
 			processing=false;
 		}
 		let current_block_request=current_block;
+		current_block_attempts++;
+		let current_block_request_attempts=current_block_attempts;
 		viz.api.getOpsInBlock(current_block,0,function(e,r){
 			if(e){
 				process_failure();
 			}
 			else{
-				if(current_block_request==current_block){
+				if((current_block_request==current_block)&&(current_block_request_attempts==current_block_attempts)){
 					console.log('Parse block '+current_block+options.paygate_account);
 					for(let i in r){
 						let op_name=r[i].op[0];
@@ -85,10 +89,10 @@ module.exports=class viz_helper{
 							let op_data=r[i].op[1];
 							let trx_id=r[i].trx_id;
 							if(op_data.to==options.paygate_account){
-								console.log('Find '+op_name+' trx_id:'+r[i].trx_id+' in block '+current_block_request+' with data: '+JSON.stringify(op_data));
+								console.log('Find income '+op_name+' trx_id:'+trx_id+' in block '+current_block_request+' with data: '+JSON.stringify(op_data));
 								_this.auto_increment('viz_income',true,function(id){
 									if(!id){
-										console.log('Error mongodb auto increment viz_income '+op_name+' trx_id:'+r[i].trx_id+' in block '+current_block_request+' with data: '+JSON.stringify(op_data));
+										console.log('Error mongodb auto increment viz_income '+op_name+' trx_id:'+trx_id+' in block '+current_block_request+' with data: '+JSON.stringify(op_data));
 									}
 									else{
 										let transfer={_id:id,status:0,from:op_data.from,amount:parseInt(parseFloat(op_data.amount.substr(0,op_data.amount.indexOf(' ')))*1000),memo:op_data.memo,block:current_block_request,trx_id:trx_id};
@@ -102,7 +106,46 @@ module.exports=class viz_helper{
 										});
 									}
 								});
-
+							}
+							if(op_data.from==options.paygate_account){
+								console.log('Find outcome '+op_name+' trx_id:'+trx_id+' in block '+current_block_request+' with data: '+JSON.stringify(op_data));
+								if(-1!=op_data.memo.indexOf('return:')){
+									let return_id=parseInt(op_data.memo.substr(op_data.memo.indexOf('return:')+('return:').length));
+									if(return_id){
+										mongodb.collection('viz_income').updateOne({_id:return_id},{$set:{return:1,return_trx_id:trx_id}},function(e,r){
+											if(e){
+												console.log('Error mongodb update return viz_income '+op_name+' trx_id:'+trx_id+' in block '+current_block_request+' with data: '+JSON.stringify(op_data));
+											}
+											else{
+												console.log('Success mongodb update return viz_income '+op_name+' trx_id:'+trx_id+' in block '+current_block_request+' with data: '+JSON.stringify(op_data));
+											}
+										});
+									}
+								}
+								else{
+									mongodb.collection('viz_outcome').findOne({to:op_data.to,amount:parseInt(parseFloat(op_data.amount.substr(0,op_data.amount.indexOf(' ')))*1000),memo:op_data.memo,status:2},function(e,r){
+										if(e){
+											console.log('Error mongodb find viz_outcome '+op_name+' trx_id:'+trx_id+' in block '+current_block_request+' with data: '+JSON.stringify(op_data));
+										}
+										else{
+											if(typeof r !== 'undefined'){
+												if(null===r){
+													console.log('None mongodb find viz_outcome '+op_name+' trx_id:'+trx_id+' in block '+current_block_request+' with data: '+JSON.stringify(op_data));
+												}
+												else{
+													mongodb.collection('viz_outcome').updateOne({_id:r._id},{$set:{status:3}},function(e,r){
+														if(e){
+															console.log('Error mongodb update viz_outcome '+op_name+' trx_id:'+trx_id+' in block '+current_block_request+' with data: '+JSON.stringify(op_data));
+														}
+														else{
+															console.log('Success mongodb update viz_outcome '+op_name+' trx_id:'+trx_id+' in block '+current_block_request+' with data: '+JSON.stringify(op_data));
+														}
+													});
+												}
+											}
+										}
+									});
+								}
 							}
 						}
 					}
