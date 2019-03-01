@@ -1,14 +1,14 @@
 {
-  "name": "viz-paygate",
+  "name": "viz-nodejs-paygate",
   "version": "1.0.0",
-  "description": "Paygate provider for VIZ blockchain",
+  "description": "Paygate provider for VIZ blockchain on NodeJS",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/VIZ-World/viz-paygate-js.git"
+    "url": "git+https://github.com/VIZ-Blockchain/viz-nodejs-paygate.git"
   },
   "keywords": [
     "viz",
@@ -18,9 +18,9 @@
   "author": "Anatoly Piskunov <anatoly.piskunov@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/VIZ-World/viz-paygate-js/issues"
+    "url": "https://github.com/VIZ-Blockchain/viz-nodejs-paygate/issues"
   },
-  "homepage": "https://github.com/VIZ-World/viz-paygate-js#readme",
+  "homepage": "https://github.com/VIZ-Blockchain/viz-nodejs-paygate#readme",
   "dependencies": {
     "mongodb": "^3.1.13",
     "viz-world-js": "^0.9.16",
